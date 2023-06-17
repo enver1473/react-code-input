@@ -63,12 +63,81 @@ class ReactCodeInput extends Component {
     this.uuid = uuidv4();
   }
 
+  componentDidUpdate(prevProps, nextProps) {
+    if (prevProps.value !== nextProps.value) {
+      this.handleValuePropChanged(nextProps.value);
+    }
+  }
+
   UNSAFE_componentWillReceiveProps(nextProps) {
     this.setState({
       isValid: nextProps.isValid,
       value: nextProps.value,
       disabled: nextProps.disabled,
     });
+  }
+
+  getFilteredValue(value) {
+    const { filterChars, filterCharsIsWhitelist } = this.props;
+
+    /** Filter Chars */
+    return value.split('').filter(currChar => {
+      if (filterCharsIsWhitelist) {
+        return filterChars.includes(currChar);
+      }
+      return !filterChars.includes(currChar);
+    }).join('');
+  }
+
+  getUpdatedStateOnValueChange(targetInput, value) {
+    if (this.props.forceUppercase) {
+      value = value.toUpperCase();
+    }
+
+    if (this.state.type === 'number') {
+      value = value.replace(/[^\d]/g, '');
+    }
+
+    value = this.getFilteredValue(value);
+
+    const input = this.state.input.slice();
+
+    if (value.length > 1) {
+      value.split('').map((char, i) => {
+        if (Number(targetInput.dataset.id) + i < this.props.fields) {
+          input[Number(targetInput.dataset.id) + i] = char;
+        }
+        return false;
+      });
+    } else if (value.length === 1) {
+      input[Number(targetInput.dataset.id)] = value;
+    } else {
+      input.map(() => '');
+    }
+
+    input.map((s, i) => {
+      if (this.textInput[i]) {
+        this.textInput[i].value = s;
+      }
+      return false;
+    });
+
+    const newTarget = this.textInput[targetInput.dataset.id < input.length
+        ? Number(targetInput.dataset.id) + 1
+        : targetInput.dataset.id];
+
+    if (newTarget) {
+      newTarget.focus();
+      newTarget.select();
+    }
+
+    fullValue = input.join('');
+
+    return { value: fullValue, input };
+  }
+
+  handleValuePropChanged(value) {
+    this.getUpdatedStateOnValueChange(this.textInput[0], value);
   }
 
   handleBlur(e) {
@@ -88,62 +157,11 @@ class ReactCodeInput extends Component {
   }
 
   handleChange(e) {
-    const { filterChars, filterCharsIsWhitelist } = this.props;
-
     let value = String(e.target.value);
 
-    if (this.props.forceUppercase) {
-      value = value.toUpperCase();
-    }
+    const { value: fullValue, input } = this.getUpdatedStateOnValueChange(e.target, value);
 
-    if (this.state.type === 'number') {
-      value = value.replace(/[^\d]/g, '');
-    }
-
-    /** Filter Chars */
-    value = value.split('').filter(currChar => {
-      if (filterCharsIsWhitelist) {
-        return filterChars.includes(currChar);
-      }
-      return !filterChars.includes(currChar);
-    }).join('');
-
-    let fullValue = value;
-
-    if (value !== '') {
-      const input = this.state.input.slice();
-
-      if (value.length > 1) {
-        value.split('').map((chart, i) => {
-          if (Number(e.target.dataset.id) + i < this.props.fields) {
-            input[Number(e.target.dataset.id) + i] = chart;
-          }
-          return false;
-        });
-      } else {
-        input[Number(e.target.dataset.id)] = value;
-      }
-
-      input.map((s, i) => {
-        if (this.textInput[i]) {
-          this.textInput[i].value = s;
-        }
-        return false;
-      });
-
-      const newTarget = this.textInput[e.target.dataset.id < input.length
-        ? Number(e.target.dataset.id) + 1
-        : e.target.dataset.id];
-
-      if (newTarget) {
-        newTarget.focus();
-        newTarget.select();
-      }
-
-      fullValue = input.join('');
-
-      this.setState({ value: input.join(''), input });
-    }
+    this.setState({ value: fullValue, input });
 
     if (this.props.onChange && fullValue) {
       this.props.onChange(fullValue);

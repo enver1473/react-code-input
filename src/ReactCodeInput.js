@@ -63,8 +63,8 @@ class ReactCodeInput extends Component {
     this.uuid = uuidv4();
   }
 
-  componentDidUpdate(prevProps, nextProps) {
-    if (prevProps.value !== nextProps.value) {
+  componentDidUpdate(_, nextProps) {
+    if (nextProps.value !== this.state.value) {
       this.handleValuePropChanged(nextProps.value);
     }
   }

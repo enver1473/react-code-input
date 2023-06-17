@@ -63,8 +63,8 @@ class ReactCodeInput extends Component {
     this.uuid = uuidv4();
   }
 
-  componentDidUpdate(_, nextProps) {
-    if (nextProps.value !== this.state.value) {
+  componentDidUpdate(prevProps, nextProps) {
+    if (prevProps.value !== nextProps.value && nextProps.value !== this.state.value) {
       this.handleValuePropChanged(nextProps.value);
     }
   }
@@ -157,11 +157,62 @@ class ReactCodeInput extends Component {
   }
 
   handleChange(e) {
-    const value = String(e.target.value);
+    const { filterChars, filterCharsIsWhitelist } = this.props;
 
-    const { value: fullValue, input } = this.getUpdatedStateOnValueChange(e.target, value);
+    let value = String(e.target.value);
 
-    this.setState({ value: fullValue, input });
+    if (this.props.forceUppercase) {
+      value = value.toUpperCase();
+    }
+
+    if (this.state.type === 'number') {
+      value = value.replace(/[^\d]/g, '');
+    }
+
+    /** Filter Chars */
+    value = value.split('').filter(currChar => {
+      if (filterCharsIsWhitelist) {
+        return filterChars.includes(currChar);
+      }
+      return !filterChars.includes(currChar);
+    }).join('');
+
+    let fullValue = value;
+
+    if (value !== '') {
+      const input = this.state.input.slice();
+
+      if (value.length > 1) {
+        value.split('').map((chart, i) => {
+          if (Number(e.target.dataset.id) + i < this.props.fields) {
+            input[Number(e.target.dataset.id) + i] = chart;
+          }
+          return false;
+        });
+      } else {
+        input[Number(e.target.dataset.id)] = value;
+      }
+
+      input.map((s, i) => {
+        if (this.textInput[i]) {
+          this.textInput[i].value = s;
+        }
+        return false;
+      });
+
+      const newTarget = this.textInput[e.target.dataset.id < input.length
+        ? Number(e.target.dataset.id) + 1
+        : e.target.dataset.id];
+
+      if (newTarget) {
+        newTarget.focus();
+        newTarget.select();
+      }
+
+      fullValue = input.join('');
+
+      this.setState({ value: input.join(''), input });
+    }
 
     if (this.props.onChange && fullValue) {
       this.props.onChange(fullValue);

@@ -131,7 +131,7 @@ class ReactCodeInput extends Component {
       newTarget.select();
     }
 
-    fullValue = input.join('');
+    const fullValue = input.join('');
 
     return { value: fullValue, input };
   }
@@ -157,7 +157,7 @@ class ReactCodeInput extends Component {
   }
 
   handleChange(e) {
-    let value = String(e.target.value);
+    const value = String(e.target.value);
 
     const { value: fullValue, input } = this.getUpdatedStateOnValueChange(e.target, value);
 
@@ -179,10 +179,9 @@ class ReactCodeInput extends Component {
       value;
 
     if (this.state.filterKeyCodes.length > 0) {
-      this.state.filterKeyCodes.map((item) => {
+      this.state.filterKeyCodes.forEach((item) => {
         if (item === e.keyCode) {
           e.preventDefault();
-          return true;
         }
       });
     }
